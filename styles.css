@@ -160,6 +160,36 @@ ul { list-style: none; padding: 0; margin: 0; }
   border-left-color: var(--ai-accent);
 }
 
+/* Active State - Currently in viewport */
+.ai-nav-item.ai-nav-active {
+  background: rgba(127,127,127,0.08);
+  border-left-color: var(--ai-accent);
+}
+
+.ai-nav-item.ai-nav-active .ai-nav-text {
+  color: var(--ai-text);
+  font-weight: 500;
+}
+
+.ai-nav-item.ai-nav-active .ai-nav-icon {
+  color: var(--ai-accent);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Focus State - Keyboard navigation */
+.ai-nav-item.ai-nav-focused {
+  background: rgba(127,127,127,0.08);
+  border-left-color: var(--ai-accent);
+}
+
+.ai-nav-subitem.ai-nav-focused {
+  background: rgba(127,127,127,0.08);
+  color: var(--ai-accent);
+  font-weight: 500;
+  opacity: 1;
+}
+
 .ai-nav-item.user .ai-nav-icon { color: var(--ai-text-muted); }
 .ai-nav-item.ai .ai-nav-icon { color: var(--ai-accent); }
 
@@ -175,11 +205,25 @@ ul { list-style: none; padding: 0; margin: 0; }
   margin-bottom: 4px;
 }
 
-.ai-nav-sublist li {
+.ai-nav-subitem {
   font-size: 11px;
   padding: 3px 0;
   color: var(--ai-text-muted);
   cursor: pointer;
   opacity: 0.8;
 }
-.ai-nav-sublist li:hover { opacity: 1; color: var(--ai-accent); }
+.ai-nav-subitem:hover { opacity: 1; color: var(--ai-accent); }
+.ai-nav-subitem.ai-nav-active {
+  color: var(--ai-accent);
+  font-weight: 500;
+  opacity: 1;
+}
+
+/* Empty State */
+.ai-nav-empty-state {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--ai-text-muted);
+  font-size: 13px;
+  opacity: 0.8;
+}
