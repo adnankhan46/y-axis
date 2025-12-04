@@ -245,16 +245,25 @@
     panel.className = 'ai-nav-panel';
     panel.innerHTML = `
       <div class="ai-nav-header">
+        <div class="ai-nav-progress-bar" id="ai-progress-bar"></div>
         <div class="ai-nav-tools">
+             <div class="ai-nav-tools-1st">
             <button class="ai-tool-btn" id="ai-export-btn" title="Export Chat to Markdown">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
+            <span class="ai-nav-title">Y-Axis</span>
+            </div>
             <div class="ai-view-switch">
-                <button data-level="1">View Prompts</button>
+                <button data-level="1">Only Prompts</button>
                 <button data-level="2" class="active">View All</button>
             </div>
         </div>
-        <input type="text" class="ai-search" placeholder="Search conversation...">
+        <div class="ai-search-container">
+          <div class="ai-search-wrapper">
+            <svg class="ai-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="ai-search" placeholder="Filter..." id="ai-search-input">
+          </div>
+        </div>
       </div>
       <div class="ai-nav-content" id="ai-nav-content"></div>
     `;
@@ -263,10 +272,20 @@
     root.appendChild(panel);
     document.body.appendChild(root);
 
-    // Event Listeners
-    panel.querySelector('.ai-search').addEventListener('input', (e) => {
-        state.searchTerm = e.target.value.toLowerCase();
+    // Search Listeners
+    const searchInput = panel.querySelector('#ai-search-input');
+    searchInput.addEventListener('input', (e) => {
+      state.searchTerm = e.target.value.toLowerCase();
+      refreshNavigation();
+    });
+    searchInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        state.searchTerm = '';
+        searchInput.value = '';
         refreshNavigation();
+        searchInput.blur();
+      }
     });
 
     panel.querySelectorAll('.ai-view-switch button').forEach(btn => {
@@ -442,6 +461,7 @@
     const focusOrder = [];
 
     const list = document.createElement('ul');
+    list.className = 'ai-nav-list';
     let hasVisibleItems = false;
     
     turns.forEach((turn, index) => {
@@ -479,6 +499,27 @@
        li.addEventListener('click', (e) => {
          e.stopPropagation();
          scrollToElement(turn.element, targetId);
+       });
+
+       // Right-click to copy
+       li.addEventListener('contextmenu', (e) => {
+         e.preventDefault();
+         const textSpan = li.querySelector('.ai-nav-text');
+         const originalText = textSpan.textContent;
+         navigator.clipboard.writeText(turn.text).then(() => {
+           textSpan.textContent = "Copied to clipboard!";
+           textSpan.style.color = "var(--ai-accent)";
+           setTimeout(() => {
+             textSpan.textContent = originalText;
+             textSpan.style.color = "";
+           }, 1200);
+         }).catch(() => {
+           // Fallback if clipboard API fails
+           textSpan.textContent = "Copy failed";
+           setTimeout(() => {
+             textSpan.textContent = originalText;
+           }, 1200);
+         });
        });
 
        list.appendChild(li);
@@ -590,6 +631,28 @@
     
     const scrollSource = getScrollSourceNode();
     if (!scrollSource) return;
+
+    // Calculate scroll percentage
+    let scrolled = 0;
+    let max = 0;
+
+    if (scrollSource === document || scrollSource === document.body || scrollSource === document.documentElement) {
+      const docEl = document.scrollingElement || document.documentElement || document.body;
+      scrolled = docEl.scrollTop || 0;
+      max = docEl.scrollHeight - docEl.clientHeight;
+    } else {
+      scrolled = scrollSource.scrollTop;
+      max = scrollSource.scrollHeight - scrollSource.clientHeight;
+    }
+
+    if (max < 0) max = 0;
+    let pct = max > 0 ? Math.round((scrolled / max) * 100) : 0;
+
+    // Update progress bar
+    const progressBar = document.getElementById('ai-progress-bar');
+    if (progressBar) {
+      progressBar.style.width = `${pct}%`;
+    }
 
     // Find closest item to viewport
     if (state.suppressNavAutoScroll) return;

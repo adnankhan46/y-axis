@@ -7,6 +7,7 @@
   --ai-text-muted: #666;
   --ai-radius: 12px;
   --ai-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
+  --spine-center: 24px;
 }
 
 /* Dark Mode Detect */
@@ -88,13 +89,42 @@
 .ai-nav-header {
   padding: 12px;
   border-bottom: 1px solid var(--ai-border);
+  position: relative;
+}
+
+/* Progress Bar - Visual indicator at top */
+.ai-nav-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--ai-accent);
+  width: 0%;
+  transition: width 0.1s ease-out;
+  z-index: 1;
+}
+
+/* Title */
+.ai-nav-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ai-text-muted);
+  margin: 0 8px;
 }
 
 .ai-nav-tools {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
+
+.ai-nav-tools-1st {
+  display: flex;  
+  align-items: center;
+  gap: 4px;
+ }
 
 .ai-tool-btn {
   background: transparent;
@@ -121,37 +151,94 @@
   font-weight: 600;
 }
 
+/* Search Container */
+.ai-search-container {
+  padding: 0 12px 8px 12px;
+  border-bottom: 1px solid var(--ai-border);
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ai-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
 .ai-search {
   width: 100%;
   box-sizing: border-box;
   background: rgba(127,127,127,0.1);
-  border: none;
-  padding: 6px 10px;
+  border: 1px solid transparent;
+  padding: 6px 10px 6px 28px;
   border-radius: 6px;
   color: var(--ai-text);
   font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
 }
-.ai-search:focus { outline: 1px solid var(--ai-accent); }
+
+.ai-search:focus {
+  background: rgba(127,127,127,0.15);
+  border-color: var(--ai-border);
+  box-shadow: 0 0 0 2px rgba(127,127,127,0.1);
+}
+
+.ai-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--ai-text-muted);
+  pointer-events: none;
+}
 
 /* Content List */
 .ai-nav-content {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  overflow-x: hidden;
+  padding: 12px 0;
+  position: relative;
+  scrollbar-width: thin;
 }
 
-ul { list-style: none; padding: 0; margin: 0; }
+ul.ai-nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+/* Timeline Spine - Vertical line connecting items */
+ul.ai-nav-list::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--spine-center);
+  width: 1px;
+  background: var(--ai-border);
+  z-index: 0;
+}
 
 .ai-nav-item {
-  padding: 8px 12px;
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  padding: 6px 12px 6px 0;
+  margin-bottom: 2px;
   cursor: pointer;
-  border-left: 2px solid transparent;
+  border-left: 3px solid transparent;
   font-size: 13px;
   color: var(--ai-text-muted);
   transition: all 0.15s;
+  z-index: 1;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ai-nav-item:hover {
@@ -177,6 +264,10 @@ ul { list-style: none; padding: 0; margin: 0; }
   transform: scale(1.05);
 }
 
+.ai-nav-item.ai-nav-focused .ai-nav-icon {
+  color: var(--ai-accent);
+}
+
 /* Focus State - Keyboard navigation */
 .ai-nav-item.ai-nav-focused {
   background: rgba(127,127,127,0.08);
@@ -190,27 +281,59 @@ ul { list-style: none; padding: 0; margin: 0; }
   opacity: 1;
 }
 
+/* Icon positioning relative to spine */
+.ai-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: calc(var(--spine-center) - 12px);
+  margin-right: 10px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background: var(--ai-bg);
+  border-radius: 6px;
+  color: var(--ai-text-muted);
+  transition: all 0.2s ease;
+}
+
 .ai-nav-item.user .ai-nav-icon { color: var(--ai-text-muted); }
 .ai-nav-item.ai .ai-nav-icon { color: var(--ai-accent); }
 
 .ai-nav-text {
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  padding-right: 4px;
+  line-height: 1.5;
 }
 
 /* Sublist (Headings) */
 .ai-nav-sublist {
-  padding-left: 40px;
+  flex-basis: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding-left: calc(var(--spine-center) + 24px);
+  margin-top: 4px;
   margin-bottom: 4px;
+  display: block;
 }
 
 .ai-nav-subitem {
-  font-size: 11px;
-  padding: 3px 0;
+  position: relative;
+  font-size: 12px;
+  padding: 3px 12px 3px 0;
   color: var(--ai-text-muted);
   cursor: pointer;
   opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+  transition: color 0.15s;
 }
 .ai-nav-subitem:hover { opacity: 1; color: var(--ai-accent); }
 .ai-nav-subitem.ai-nav-active {
