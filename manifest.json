@@ -3,7 +3,10 @@
   "name": "Y-Axis : Natigate through long Chats",
   "version": "2.0",
   "description": "Sidebar navigation and export for Claude, ChatGPT, Gemini, and DeepSeek.",
-  "permissions": ["activeTab", "clipboardWrite"],
+  "permissions": [
+    "activeTab",
+    "clipboardWrite"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -12,13 +15,23 @@
         "*://gemini.google.com/*",
         "*://chat.deepseek.com/*"
       ],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
-  
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_title": "Y-Axis : Natigate through long Chats"
+    "default_title": "Y-Axis : Natigate through long Chats",
+    "default_popup": "popup.html"
   }
 }
