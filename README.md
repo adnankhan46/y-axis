@@ -7,7 +7,8 @@ Chat navigation that saves your thumb and your time.
 > Y-axis dont own any of the Icons and Images used, credit goes to the providers.
 
 **Icon Provider:**
-```https://www.behance.net/gallery/237876757/Gatto-Gelato?tracking_source=search_projects|cat+logo&l=10
+```
+https://www.behance.net/gallery/237876757/Gatto-Gelato?tracking_source=search_projects|cat+logo&l=10
 ```
 
 **Image Provider:**
