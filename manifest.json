@@ -5,7 +5,8 @@
   "description": "Sidebar navigation and export for Claude, ChatGPT, Gemini, and DeepSeek.",
   "permissions": [
     "activeTab",
-    "clipboardWrite"
+    "clipboardWrite",
+    "storage"
   ],
   "content_scripts": [
     {
@@ -16,10 +17,13 @@
         "*://chat.deepseek.com/*"
       ],
       "js": [
-        "content.js"
+        "config/config.js",
+        "content.js",
+        "onboarding.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "onboarding.css"
       ],
       "run_at": "document_idle"
     }
@@ -33,5 +37,19 @@
   "action": {
     "default_title": "Y-Axis : Natigate through long Chats",
     "default_popup": "popup.html"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "public/images/*",
+        "public/fonts/*"
+      ],
+      "matches": [
+        "*://claude.ai/*",
+        "*://chatgpt.com/*",
+        "*://gemini.google.com/*",
+        "*://chat.deepseek.com/*"
+      ]
+    }
+  ]
 }

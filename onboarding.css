@@ -1,0 +1,418 @@
+/* ======================== */
+/* Y-Axis Onboarding Styles */
+/* ======================== */
+
+@font-face {
+  font-family: 'PPEditorialNew';
+  src: url('public/fonts/PPEditorialNew-Italic.otf') format('opentype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+.yaxis-onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: yaxis-fade-in 0.3s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@keyframes yaxis-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.yaxis-onboarding-modal {
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 28px 28px 4px 28px;
+  width: 380px;
+  max-width: 90vw;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: yaxis-modal-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #eee;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-onboarding-modal {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+}
+
+@keyframes yaxis-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.yaxis-onboarding-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 24px 16px;
+  margin: -28px -28px 24px -28px;
+  background-image: url('public/images/header-1.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+
+.yaxis-onboarding-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+.yaxis-onboarding-header>* {
+  position: relative;
+  z-index: 1;
+}
+
+.yaxis-onboarding-emoji {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.yaxis-onboarding-title {
+  font-size: 24px;
+  font-weight: 400;
+  font-family: 'PPEditorialNew', serif;
+  font-style: italic;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.yaxis-onboarding-title-1 {
+  font-size: 24px;
+  font-weight: 400;
+  font-family: serif;
+  font-style: regular;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.yaxis-onboarding-subtitle {
+  font-size: 13px;
+  color: #ededed;
+  margin: 0;
+  line-height: 1.5;
+}
+
+
+
+.yaxis-form-group {
+  margin-bottom: 16px;
+}
+
+.yaxis-form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #aaa;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-form-label {
+    color: #666;
+  }
+}
+
+.yaxis-email-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.15);
+  color: #eee;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-email-input {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background: rgba(127, 127, 127, 0.1);
+    color: #333;
+  }
+}
+
+.yaxis-email-input:focus {
+  border-color: #4a9eff;
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
+}
+
+.yaxis-email-input::placeholder {
+  color: #888;
+  opacity: 0.7;
+}
+
+.yaxis-consent-box {
+  padding: 10px 14px 14px 14px;
+  background: rgba(127, 127, 127, 0.1);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.yaxis-consent-box:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-consent-box:hover {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+.yaxis-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.yaxis-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 6px;
+  accent-color: #4a9eff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.yaxis-consent-text {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.yaxis-consent-note {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.yaxis-extract-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  border: 1px solid #4a9eff;
+  background: transparent;
+  color: #4a9eff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.yaxis-extract-btn:hover:not(:disabled) {
+  background: #4a9eff;
+  color: white;
+}
+
+.yaxis-extract-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.yaxis-submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4a9eff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.yaxis-submit-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.yaxis-submit-btn:active {
+  transform: translateY(0);
+}
+
+.yaxis-skip-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  color: #767676;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 8px;
+  transition: color 0.2s;
+}
+
+.yaxis-skip-btn-notice {
+  width: 100%;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: #a4a4a4;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 2px;
+  transition: color 0.2s;
+  text-align: center;
+}
+
+.yaxis-skip-btn:hover {
+  color: #ccc;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-skip-btn:hover {
+    color: #333;
+  }
+}
+
+/* User Icon with Email Tooltip */
+.yaxis-user-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(127, 127, 127, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #aaa;
+  transition: all 0.2s;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-user-icon {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #666;
+  }
+}
+
+.yaxis-user-icon:hover {
+  background: rgba(127, 127, 127, 0.25);
+  color: #4a9eff;
+}
+
+.yaxis-user-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.yaxis-user-tooltip {
+  position: absolute;
+  bottom: -36px;
+  right: 0;
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #eee;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-user-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #333;
+  }
+}
+
+.yaxis-user-icon:hover .yaxis-user-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.yaxis-user-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background: rgba(30, 30, 30, 0.95);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  transform: rotate(45deg);
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-user-tooltip::before {
+    background: rgba(255, 255, 255, 0.95);
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+}
+
+.yaxis-extracted-email {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(74, 158, 255, 0.15);
+  border-radius: 6px;
+  font-size: 13px;
+  color: #4a9eff;
+  word-break: break-all;
+}
+
+footer {
+  text-align: center;
+}
+
+footer .built-by {
+  font-size: 10px;
+  color: #a0a0a0;
+  text-decoration: none;
+  text-align: center;
+}
+
+footer .built-by a {
+  text-decoration: none;
+  color: #ffffff;
+}
