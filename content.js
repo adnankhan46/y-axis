@@ -50,22 +50,41 @@
     },
     chatgpt: {
       isMatch: () => window.location.hostname.includes('chatgpt') || window.location.hostname.includes('openai'),
-      scrollContainerSelector: 'main div[class*="overflow-y-auto"]',
+      scrollContainerSelector: 'main div[class*="overflow-y-auto"], [data-scroll-root="true"]',
       getTurns: (container) => {
-        const articles = Array.from(container.querySelectorAll('article[data-turn]'));
+        // ChatGPT 2024/2025 DOM: article[data-turn] with data-turn="user" or "assistant"
+        // User messages: [data-message-author-role="user"] inside .user-message-bubble-color
+        // Assistant messages: div.markdown.prose (class contains "markdown" and "prose")
+        const articles = Array.from(container.querySelectorAll('article[data-turn], article[data-testid^="conversation-turn"]'));
         return articles.map(article => {
-          const role = article.dataset.turn; // 'user' or 'assistant'
+          // Get role from data-turn attribute or data-testid
+          let role = article.dataset.turn;
+          if (!role) {
+            // Fallback: check for user message element
+            const hasUserMsg = article.querySelector('[data-message-author-role="user"]');
+            role = hasUserMsg ? 'user' : 'assistant';
+          }
+          
           let text = '';
           let headings = [];
           
           if (role === 'user') {
-             const textEl = article.querySelector('[data-message-author-role="user"]');
+             // User prompt: look for the message bubble or data attribute
+             const textEl = article.querySelector('[data-message-author-role="user"]') || 
+                           article.querySelector('.user-message-bubble-color') ||
+                           article.querySelector('.whitespace-pre-wrap');
              text = textEl ? textEl.innerText : '';
           } else {
-             const contentEl = article.querySelector('.markdown') || article.querySelector('[data-message-author-role="assistant"]');
+             // Assistant response: new structure uses div.markdown.prose 
+             // The class is now "markdown prose dark:prose-invert w-full break-words dark markdown-new-styling"
+             const contentEl = article.querySelector('.markdown.prose') || 
+                              article.querySelector('[class*="markdown"]') ||
+                              article.querySelector('.markdown') || 
+                              article.querySelector('[data-message-author-role="assistant"]');
              if (contentEl) {
                text = contentEl.innerText || '';
-               headings = Array.from(contentEl.querySelectorAll('h1, h2, h3')).map(h => ({
+               // Headings may have data-start/data-end attributes in new DOM
+               headings = Array.from(contentEl.querySelectorAll('h1, h2, h3, h4')).map(h => ({
                  innerText: h.innerText, element: h
                }));
              }

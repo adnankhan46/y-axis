@@ -191,11 +191,8 @@
         </button>
 
         <p class="yaxis-skip-btn-notice">None of your data touches our server.
-       <br /> To know who our users are, we take only your email, you can skip.</p>
-      <footer>
-            <span class="built-by">Build with Love by <a href="https://adnankhan93.vercel.app"
-                    target="_blank">@adnankhan</a></span>
-        </footer>
+       <br /> To know who our users are, we take only your email</p>
+      
        </div>
     `;
 

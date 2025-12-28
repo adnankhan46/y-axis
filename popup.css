@@ -146,6 +146,7 @@ footer .built-by {
 footer .built-by a {
     text-decoration: none;
     color: #ffffff;
+    text-decoration: underline;
 }
 
 /* Popup User Icon */
