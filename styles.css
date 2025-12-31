@@ -105,11 +105,12 @@
 }
 
 /* Title */
-.ai-nav-title {
+.ai-nav-title, a {
   font-size: 12px;
   font-weight: 600;
   color: var(--ai-text-muted);
   margin: 0 8px;
+  cursor: pointer;
 }
 
 .ai-nav-tools {

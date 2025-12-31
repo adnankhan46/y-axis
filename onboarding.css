@@ -269,6 +269,32 @@
   transform: translateY(0);
 }
 
+.yaxis-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Error message styling */
+.yaxis-error-message {
+  padding: 10px 14px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+  .yaxis-error-message {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+  }
+}
+
 .yaxis-skip-btn {
   width: 100%;
   padding: 12px;
@@ -302,6 +328,11 @@
   .yaxis-skip-btn:hover {
     color: #333;
   }
+}
+
+.yaxis-skip-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* User Icon with Email Tooltip */

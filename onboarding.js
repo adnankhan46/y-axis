@@ -3,6 +3,9 @@
   if (window.__yaxisOnboardingInjected) return;
   window.__yaxisOnboardingInjected = true;
 
+  // Constants for skip logic
+  const SKIP_RELOAD_THRESHOLD = 5;
+
   // Email extraction methods per platform
   const EMAIL_EXTRACTORS = {
     chatgpt: () => {
@@ -90,46 +93,101 @@
   // check if onboarding is needed
   async function checkOnboarding() {
     try {
-      const data = await chrome.storage.local.get('yaxis_user');
-      if (!data.yaxis_user || !data.yaxis_user.onboardingComplete) {
-        // Wait a bit for page to load
-        setTimeout(showOnboardingModal, 2000);
-      } else {
-        // User already onboarded, show user icon to Main UI
-        // addUserIconToUI(data.yaxis_user.email);
+      const data = await chrome.storage.local.get(['yaxis_user', 'yaxis_skip_count']);
+      const userData = data.yaxis_user;
+      const skipCount = data.yaxis_skip_count || 0;
+
+      // If onboarding is complete (email submitted + server returned 200), never show again
+      if (userData && userData.onboardingComplete === true) {
+        return;
       }
+
+      // If user has skipped before, check if we should show on this reload
+      if (userData && userData.skipped === true) {
+        // Increment skip count
+        const newSkipCount = skipCount + 1;
+        await chrome.storage.local.set({ yaxis_skip_count: newSkipCount });
+
+        // Show modal on every 4th reload (when count is divisible by 4)
+        if (newSkipCount % SKIP_RELOAD_THRESHOLD === 0) {
+          setTimeout(showOnboardingModal, 2000);
+        }
+        return;
+      }
+
+      // First time user - show onboarding
+      setTimeout(showOnboardingModal, 2000);
     } catch (e) {
       console.error('Y-Axis: Error checking onboarding status', e);
     }
   }
 
-  // Save user data to storage and optionally send to backend
-  async function saveUserData(email, method) {
+  // Save user data when skipping
+  async function saveSkippedData() {
     const userData = {
-      email: email || null,
-      method: method, // 'manual', 'extracted', or 'skipped'
-      onboardingComplete: true,
-      consentedAt: method !== 'skipped' ? new Date().toISOString() : null,
+      email: null,
+      method: 'skipped',
+      skipped: true,
+      onboardingComplete: false, // Not complete when skipped
+      consentedAt: null,
       provider: detectProvider()
     };
 
-    // Save to local storage
-    await chrome.storage.local.set({ yaxis_user: userData });
-
-    // Send to backend if email was provided
-    if (email) {
-      try {
-        await fetch(CONFIG.API_URL + '/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-      } catch (e) {
-        console.warn('Y-Axis: Could not send data to backend', e);
-      }
-    }
+    // Save to local storage and reset skip count to start counting
+    await chrome.storage.local.set({ 
+      yaxis_user: userData,
+      yaxis_skip_count: 0 // Reset count when user skips, next reload will be 1
+    });
 
     return userData;
+  }
+
+  async function saveUserDataWithEmail(email, method) {
+    const userData = {
+      email: email,
+      method: method, // manual or extracted
+      skipped: false,
+      onboardingComplete: true,
+      consentedAt: new Date().toISOString(),
+      provider: detectProvider()
+    };
+
+    try {
+      const response = await fetch(CONFIG.API_URL + '/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return { 
+          success: false, 
+          error: `Server error: ${response.status} ${response.statusText}` 
+        };
+      }
+
+      if (!responseData.success) {
+        return { 
+          success: false, 
+          error: responseData.error || 'Registration failed. Please try again.' 
+        };
+      }
+
+      // Server returned success: true - now save locally
+      await chrome.storage.local.set({ yaxis_user: userData });
+      // Clear skip count since onboarding is complete
+      await chrome.storage.local.remove('yaxis_skip_count');
+
+      return { success: true, userData };
+    } catch (e) {
+      // Network error or other failure
+      return { 
+        success: false, 
+        error: 'Could not connect to server. Please check your internet connection and try again.' 
+      };
+    }
   }
 
   // Create and show the onboarding modal
@@ -182,6 +240,8 @@
           <div id="yaxis-extracted-result"></div>
         </div>
 
+        <div id="yaxis-error-message" class="yaxis-error-message" style="display: none;"></div>
+
         <button id="yaxis-submit-btn" class="yaxis-submit-btn">
           Continue
         </button>
@@ -205,18 +265,40 @@
     const extractedResult = overlay.querySelector('#yaxis-extracted-result');
     const submitBtn = overlay.querySelector('#yaxis-submit-btn');
     const skipBtn = overlay.querySelector('#yaxis-skip-btn');
+    const errorMessage = overlay.querySelector('#yaxis-error-message');
 
-    // Enable/disable submit button based on email content
+    // Helper function to show error message
+    const showError = (message) => {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    };
+
+    // Helper function to hide error message
+    const hideError = () => {
+      errorMessage.style.display = 'none';
+      errorMessage.textContent = '';
+    };
+
+    // Enable/disable submit button based on valid email
     const updateSubmitButton = () => {
-      const hasEmail = emailInput.value.trim().length > 0;
-      submitBtn.disabled = !hasEmail;
+      const email = emailInput.value.trim();
+      const isValid = email.length > 0 && isValidEmail(email);
+      submitBtn.disabled = !isValid;
+      
+      // Reset border color if email becomes valid
+      if (isValid) {
+        emailInput.style.borderColor = '';
+      }
     };
 
     // Initially disable submit button
     submitBtn.disabled = true;
 
     // Listen for email input changes
-    emailInput.addEventListener('input', updateSubmitButton);
+    emailInput.addEventListener('input', () => {
+      updateSubmitButton();
+      hideError(); // Hide error when user types
+    });
 
     // Enable/disable extract button based on consent
     consentCheckbox.addEventListener('change', () => {
@@ -230,6 +312,7 @@
         emailInput.value = extracted;
         extractedResult.innerHTML = `<div class="yaxis-extracted-email">Found: ${extracted}</div>`;
         updateSubmitButton(); // Enable submit button after extraction
+        hideError();
       } else {
         extractedResult.innerHTML = `<div class="yaxis-extracted-email" style="color: #ff6b6b; background: rgba(255,107,107,0.15);">
           Email not found on this page. Please enter manually.
@@ -244,19 +327,32 @@
       
       if (email && !isValidEmail(email)) {
         emailInput.style.borderColor = '#ff6b6b';
+        showError('Please enter a valid email address.');
         return;
       }
 
+      hideError();
       submitBtn.textContent = 'Saving...';
       submitBtn.disabled = true;
+      skipBtn.disabled = true;
 
-      const userData = await saveUserData(email, method);
-      closeModal(overlay, userData.email);
+      const result = await saveUserDataWithEmail(email, method);
+      
+      if (result.success) {
+        // Server returned 200 OK - close modal
+        closeModal(overlay, result.userData.email);
+      } else {
+        // Server failed - show error and re-enable buttons
+        showError(result.error);
+        submitBtn.textContent = 'Continue';
+        submitBtn.disabled = false;
+        skipBtn.disabled = false;
+      }
     });
 
-    // Skip handler, Now Disabled
+    // Skip handler
     skipBtn.addEventListener('click', async () => {
-      await saveUserData(null, 'skipped');
+      await saveSkippedData();
       closeModal(overlay, null);
     });
 
