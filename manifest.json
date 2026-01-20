@@ -18,6 +18,7 @@
       ],
       "js": [
         "config/config.js",
+        "utils/metrics.js",
         "content.js",
         "onboarding.js"
       ],

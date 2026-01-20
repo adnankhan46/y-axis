@@ -124,6 +124,7 @@
 
   // Save user data when skipping
   async function saveSkippedData() {
+    window.metrics.track('onboarding_skipped', {});
     const userData = {
       email: null,
       method: 'skipped',

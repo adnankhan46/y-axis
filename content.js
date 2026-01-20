@@ -441,6 +441,7 @@
     const newState = forceState !== undefined ? forceState : !state.isOpen;
     state.isOpen = newState;
     root.classList.toggle("open", newState);
+    window.metrics.track('sidebar_toggled', { state: newState });
 
     if (newState) {
       // Set initial focus when opening
@@ -469,6 +470,7 @@
       b.classList.toggle("active", btnLevel === level);
     });
     
+    window.metrics.track('view_level_changed', { level });
     state.viewLevel = level;
     refreshNavigation();
   }
