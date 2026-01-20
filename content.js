@@ -374,12 +374,8 @@
 
     panel.querySelectorAll(".ai-view-switch button").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.viewLevel = parseInt(btn.dataset.level);
-        panel
-          .querySelectorAll(".ai-view-switch button")
-          .forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        refreshNavigation();
+        const level = parseInt(btn.dataset.level);
+  setViewLevel(level);
       });
     });
 
@@ -472,7 +468,7 @@
       const btnLevel = parseInt(b.dataset.level);
       b.classList.toggle("active", btnLevel === level);
     });
-
+    
     state.viewLevel = level;
     refreshNavigation();
   }
