@@ -305,13 +305,12 @@
     const toggleBtn = document.createElement("button");
     toggleBtn.className = "ai-nav-toggle";
     toggleBtn.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="8" y1="6" x2="21" y2="6"></line>
-        <line x1="8" y1="12" x2="21" y2="12"></line>
-        <line x1="8" y1="18" x2="21" y2="18"></line>
-        <circle cx="3" cy="6" r="1"></circle>
-        <circle cx="3" cy="12" r="1"></circle>
-        <circle cx="3" cy="18" r="1"></circle>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="5" y1="3" x2="5" y2="21"></line>
+        <line x1="5" y1="6" x2="11" y2="6"></line>
+        <line x1="5" y1="11" x2="15" y2="11"></line>
+        <line x1="5" y1="16" x2="9" y2="16"></line>
+        <line x1="5" y1="21" x2="19" y2="21"></line>
       </svg>`;
 
     // Drag Logic for Button
