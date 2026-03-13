@@ -211,6 +211,8 @@
     uiMode: "icon", // 'icon' | 'floating-bar'
     floatingBarText: "", // currently displayed text in the floating bar
     sortedTurns: [], // all turns in document order, saved after each refresh
+    scrollDirection: "down", // 'up' | 'down'
+    lastScrollTop: 0,
   };
 
   // Initialization
@@ -305,8 +307,26 @@
     const floatingBar = document.createElement("div");
     floatingBar.className = "ai-floating-bar";
     floatingBar.innerHTML = `
-      <div class="ai-floating-bar-text-wrapper">
-        <span class="ai-floating-bar-text" id="ai-floating-bar-text">—</span>
+      <div class="ai-floating-bar-content">
+        <div class="ai-floating-bar-icon"></div>
+        <div class="ai-floating-bar-text-wrapper">
+          <span class="ai-floating-bar-text" id="ai-floating-bar-text">No conversations, try opening an existing chat</span>
+        </div>
+        <div class="ai-floating-bar-spinner">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path class="circle" id="ai-floating-spinner"
+              stroke-dasharray="0, 100"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+        </div>
       </div>`;
     initDraggable(floatingBar);
     // Clicking the floating bar opens the full panel
@@ -743,6 +763,11 @@
       progressBar.style.width = `${pct}%`;
     }
 
+    const spinner = document.getElementById("ai-floating-spinner");
+    if (spinner) {
+      spinner.setAttribute("stroke-dasharray", `${pct}, 100`);
+    }
+
     // Floating bar always updates on scroll, independent of panel suppression
     if (state.uiMode === "floating-bar") updateFloatingBarText();
 
@@ -846,6 +871,18 @@
   function onScroll() {
     if (state.scrollAnimationFrame) return;
     state.scrollAnimationFrame = requestAnimationFrame(() => {
+      // Detect scroll direction before processing
+      const scrollSource = getScrollSourceNode();
+      let currentScrollTop = 0;
+      if (scrollSource && !isDocumentScroller(scrollSource)) {
+        currentScrollTop = scrollSource.scrollTop;
+      } else {
+        const docEl = document.scrollingElement || document.documentElement || document.body;
+        currentScrollTop = docEl.scrollTop || 0;
+      }
+      state.scrollDirection = currentScrollTop >= state.lastScrollTop ? "down" : "up";
+      state.lastScrollTop = currentScrollTop;
+
       updateScrollProgress();
       state.scrollAnimationFrame = null;
     });
@@ -885,6 +922,7 @@
       floatingBar.style.display = "flex";
       iconBtn.classList.remove("active");
       barBtn.classList.add("active");
+      updateScrollProgress();
       updateFloatingBarText();
     } else {
       floatingBar.style.display = "none";
@@ -934,10 +972,10 @@
 
     const newText = cleanText(currentUserTurn.text);
     if (newText === state.floatingBarText) return;
-    animateFloatingBarText(newText);
+    animateFloatingBarText(newText, state.scrollDirection);
   }
 
-  function animateFloatingBarText(newText) {
+  function animateFloatingBarText(newText, direction = "down") {
     const textEl = document.getElementById("ai-floating-bar-text");
     if (!textEl) return;
 
@@ -948,17 +986,21 @@
       return;
     }
 
-    // Slide current text out upward
+    // Scrolling down: current exits up, new enters from below
+    // Scrolling up:   current exits down, new enters from above
+    const exitY   = direction === "down" ? "-100%" : "100%";
+    const enterY  = direction === "down" ? "100%"  : "-100%";
+
     textEl.style.transition = "transform 0.25s ease-in-out, opacity 0.25s ease-in-out";
-    textEl.style.transform = "translateY(-100%)";
+    textEl.style.transform = `translateY(${exitY})`;
     textEl.style.opacity = "0";
 
     setTimeout(() => {
       textEl.textContent = newText;
       state.floatingBarText = newText;
-      // Snap to below without transition, then animate in
+      // Snap to entry position without transition, then animate in
       textEl.style.transition = "none";
-      textEl.style.transform = "translateY(100%)";
+      textEl.style.transform = `translateY(${enterY})`;
       textEl.style.opacity = "0";
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
