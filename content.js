@@ -11,15 +11,15 @@
       scrollContainerSelector:
         'main div[class*="overflow-y-auto"], [data-scroll-root="true"]',
       getTurns: (container) => {
-        const articles = Array.from(
+        const turns = Array.from(
           container.querySelectorAll(
-            'article[data-turn], article[data-testid^="conversation-turn"]'
+            'article[data-turn], article[data-testid^="conversation-turn"], section[data-turn], section[data-testid^="conversation-turn"]'
           )
         );
-        return articles.map((article) => {
-          let role = article.dataset.turn;
+        return turns.map((turnEl) => {
+          let role = turnEl.dataset.turn;
           if (!role) {
-            const hasUserMsg = article.querySelector(
+            const hasUserMsg = turnEl.querySelector(
               '[data-message-author-role="user"]'
             );
             role = hasUserMsg ? "user" : "assistant";
@@ -30,16 +30,16 @@
 
           if (role === "user") {
             const textEl =
-              article.querySelector('[data-message-author-role="user"]') ||
-              article.querySelector(".user-message-bubble-color") ||
-              article.querySelector(".whitespace-pre-wrap");
+              turnEl.querySelector('[data-message-author-role="user"]') ||
+              turnEl.querySelector(".user-message-bubble-color") ||
+              turnEl.querySelector(".whitespace-pre-wrap");
             text = textEl ? textEl.innerText : "";
           } else {
             const contentEl =
-              article.querySelector(".markdown.prose") ||
-              article.querySelector('[class*="markdown"]') ||
-              article.querySelector(".markdown") ||
-              article.querySelector('[data-message-author-role="assistant"]');
+              turnEl.querySelector(".markdown.prose") ||
+              turnEl.querySelector('[class*="markdown"]') ||
+              turnEl.querySelector(".markdown") ||
+              turnEl.querySelector('[data-message-author-role="assistant"]');
             if (contentEl) {
               text = contentEl.innerText || "";
               headings = Array.from(
@@ -47,7 +47,7 @@
               ).map((h) => ({ innerText: h.innerText, element: h }));
             }
           }
-          return { role, element: article, text, headings };
+          return { role, element: turnEl, text, headings };
         });
       },
     },
