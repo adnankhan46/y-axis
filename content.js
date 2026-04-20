@@ -11,23 +11,15 @@
       scrollContainerSelector:
         'main div[class*="overflow-y-auto"], [data-scroll-root="true"]',
       getTurns: (container) => {
-        /** For a Reference
-         * ChatGPT Dec 2025 DOM : article[data-turn] with data-turn="user" or "assistant"
-         * User messages: [data-message-author-role="user"] inside .user-message-bubble-color
-         * Assistant messages: div.markdown.prose (class contains "markdown" and "prose")
-         *
-         */
-        const articles = Array.from(
+        const turns = Array.from(
           container.querySelectorAll(
-            'article[data-turn], article[data-testid^="conversation-turn"]'
+            'article[data-turn], article[data-testid^="conversation-turn"], section[data-turn], section[data-testid^="conversation-turn"]'
           )
         );
-        return articles.map((article) => {
-          // Get role from data-turn attribute or data-testid
-          let role = article.dataset.turn;
+        return turns.map((turnEl) => {
+          let role = turnEl.dataset.turn;
           if (!role) {
-            // Fallback: check for user message element
-            const hasUserMsg = article.querySelector(
+            const hasUserMsg = turnEl.querySelector(
               '[data-message-author-role="user"]'
             );
             role = hasUserMsg ? "user" : "assistant";
@@ -37,32 +29,25 @@
           let headings = [];
 
           if (role === "user") {
-            // User prompt: look for the message bubble or data attribute
             const textEl =
-              article.querySelector('[data-message-author-role="user"]') ||
-              article.querySelector(".user-message-bubble-color") ||
-              article.querySelector(".whitespace-pre-wrap");
+              turnEl.querySelector('[data-message-author-role="user"]') ||
+              turnEl.querySelector(".user-message-bubble-color") ||
+              turnEl.querySelector(".whitespace-pre-wrap");
             text = textEl ? textEl.innerText : "";
           } else {
-            // Assistant response: new structure uses div.markdown.prose
-            // The class is now "markdown prose dark:prose-invert w-full break-words dark markdown-new-styling"
             const contentEl =
-              article.querySelector(".markdown.prose") ||
-              article.querySelector('[class*="markdown"]') ||
-              article.querySelector(".markdown") ||
-              article.querySelector('[data-message-author-role="assistant"]');
+              turnEl.querySelector(".markdown.prose") ||
+              turnEl.querySelector('[class*="markdown"]') ||
+              turnEl.querySelector(".markdown") ||
+              turnEl.querySelector('[data-message-author-role="assistant"]');
             if (contentEl) {
               text = contentEl.innerText || "";
-              // Headings may have data-start/data-end attributes in new DOM
               headings = Array.from(
                 contentEl.querySelectorAll("h1, h2, h3, h4")
-              ).map((h) => ({
-                innerText: h.innerText,
-                element: h,
-              }));
+              ).map((h) => ({ innerText: h.innerText, element: h }));
             }
           }
-          return { role, element: article, text, headings };
+          return { role, element: turnEl, text, headings };
         });
       },
     },
@@ -83,25 +68,23 @@
 
           if (isUser) {
             const textEl = item.querySelector(".query-text");
-            text = textEl ? textEl.innerText : "";
+            text = textEl ? textEl.innerText
+            .replace(/^\s*You\s+said[:\s]*/i, "").trim() : ""; // remove "You said:" prefix
           } else {
             const markdown = item.querySelector(".markdown");
             if (markdown) {
               text = markdown.innerText || "";
               headings = Array.from(
                 markdown.querySelectorAll("h1, h2, h3, h4")
-              ).map((h) => ({
-                innerText: h.innerText,
-                element: h,
-              }));
+              ).map((h) => ({ innerText: h.innerText, element: h }));
             }
           }
 
           turns.push({
             role: isUser ? "user" : "assistant",
             element: item,
-            text: text,
-            headings: headings,
+            text,
+            headings,
           });
         });
         return turns;
@@ -145,10 +128,7 @@
           let headings = [];
           if (!isUser) {
             headings = Array.from(el.querySelectorAll("h1, h2, h3, h4")).map(
-              (h) => ({
-                innerText: h.innerText,
-                element: h,
-              })
+              (h) => ({ innerText: h.innerText, element: h })
             );
           }
 
@@ -156,7 +136,7 @@
             role: isUser ? "user" : "assistant",
             element: turnContainer,
             text: el.innerText || "",
-            headings: headings,
+            headings,
           });
         });
         return turns;
@@ -167,9 +147,7 @@
       isMatch: () => window.location.hostname.includes("deepseek"),
       scrollContainerSelector: "#root > div, main",
       getTurns: (container) => {
-        // Generic React/Div structure fallback strategy
         const turns = [];
-        // DeepSeek often uses specific classes for bubbles
         const bubbles = Array.from(
           document.querySelectorAll(
             '.ds-chat-bubble, .chat-message, [class*="message"]'
@@ -194,7 +172,7 @@
             role: isUser ? "user" : "assistant",
             element: el,
             text: el.innerText,
-            headings: headings,
+            headings,
           });
         });
         return turns;
@@ -214,13 +192,15 @@
     focusedIndex: -1, // Current keyboard focus index
     activeNavId: null, // Currently active item (scroll-based)
     scrollContainer: null,
-    scrollEventTarget: null, // The element that actually scrolls
-    scrollListenerTarget: null, // The element we listen to for scroll events
-    suppressNavAutoScroll: false, // Temporarily disable auto-highlight when manually navigating
+    scrollEventTarget: null,
+    scrollListenerTarget: null,
+    suppressNavAutoScroll: false,
     navAutoScrollTimeout: null,
     scrollAnimationFrame: null,
     drag: {
       active: false,
+      wasDragging: false,
+      target: null, // element currently being dragged
       currentX: 0,
       currentY: 0,
       initialX: 0,
@@ -228,6 +208,11 @@
       xOffset: 0,
       yOffset: 0,
     },
+    uiMode: "icon", // 'icon' | 'floating-bar'
+    floatingBarText: "", // currently displayed text in the floating bar
+    sortedTurns: [], // all turns in document order, saved after each refresh
+    scrollDirection: "down", // 'up' | 'down'
+    lastScrollTop: 0,
   };
 
   // Initialization
@@ -239,10 +224,15 @@
 
   function init() {
     state.currentProvider = Object.values(PROVIDERS).find((p) => p.isMatch());
-    if (!state.currentProvider) return; // Exit, not on a supported site
+    if (!state.currentProvider) return;
 
     createUI();
     applyTheme();
+
+    // Global scroll capturing listener fixes issues with React virtualized
+    // or nested scroll areas (like catgpt) not bubbling scroll events.
+    // this still # need fixes , for chatgpt dynamically rendering DOM.
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
 
     // Watch for chat load
     const observer = new MutationObserver(() => {
@@ -253,7 +243,6 @@
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // Try to find container immediately
     const container = findConversationContainer();
     if (container) {
       setConversationContainer(container);
@@ -272,22 +261,14 @@
   function setConversationContainer(container) {
     if (container === state.scrollContainer) return;
     state.scrollContainer = container;
-
-    // Observe container for changes
     observeContainerContent(container);
-
-    // Set scroll target to container first (will be updated by updateScrollTargetFromTurns in refreshNavigation)
     setScrollEventTarget(container);
-
-    // Initial refresh (this will call updateScrollTargetFromTurns to fix scroll target)
     refreshNavigation();
   }
 
   function observeContainerContent(node) {
     const contentObserver = new MutationObserver(
-      debounce(() => {
-        refreshNavigation();
-      }, 500)
+      debounce(() => { refreshNavigation(); }, 500)
     );
     contentObserver.observe(node, {
       childList: true,
@@ -312,46 +293,86 @@
         <line x1="5" y1="16" x2="9" y2="16"></line>
         <line x1="5" y1="21" x2="19" y2="21"></line>
       </svg>`;
-
-    // Drag Logic for Button
     initDraggable(toggleBtn);
     toggleBtn.addEventListener("click", (e) => {
+      if (state.drag.wasDragging) return;
+      if (state.uiMode === "floating-bar") {
+        toggleFloatingBar();
+      } else {
+        toggleNav();
+      }
+    });
+
+    // 2. Floating Bar
+    const floatingBar = document.createElement("div");
+    floatingBar.className = "ai-floating-bar";
+    floatingBar.innerHTML = `
+      <div class="ai-floating-bar-content">
+        <div class="ai-floating-bar-icon"></div>
+        <div class="ai-floating-bar-text-wrapper">
+          <span class="ai-floating-bar-text" id="ai-floating-bar-text">No conversations, try opening an existing chat</span>
+        </div>
+        <div class="ai-floating-bar-spinner">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path class="circle" id="ai-floating-spinner"
+              stroke-dasharray="0, 100"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+        </div>
+      </div>`;
+    initDraggable(floatingBar);
+    // Clicking the floating bar opens the full panel
+    floatingBar.addEventListener("click", (e) => {
       if (!state.drag.wasDragging) toggleNav();
     });
 
-    // 2. Main Panel
+    // 3. Main Panel
     const panel = document.createElement("div");
     panel.className = "ai-nav-panel";
     panel.innerHTML = `
       <div class="ai-nav-header">
         <div class="ai-nav-progress-bar" id="ai-progress-bar"></div>
         <div class="ai-nav-tools">
-             <div class="ai-nav-tools-1st">
+          <div class="ai-nav-tools-1st">
             <button class="ai-tool-btn" id="ai-export-btn" title="Export Chat to Markdown">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
             <a href="https://yaxis.vercel.app" target="_blank" class="ai-nav-title">Y-Axis</a>
-            </div>
-            <div class="ai-view-switch">
-                <button data-level="1" class="${
-                  state.viewLevel === 1 ? "active" : ""
-                }">Only Prompts</button>
-                <button data-level="2" class="${
-                  state.viewLevel === 2 ? "active" : ""
-                }">View All</button>
-            </div>
+          </div>
+          <div class="ai-view-switch">
+            <button data-level="1" class="${state.viewLevel === 1 ? "active" : ""}">Only Prompts</button>
+            <button data-level="2" class="${state.viewLevel === 2 ? "active" : ""}">View All</button>
+          </div>
         </div>
         <div class="ai-search-container">
           <div class="ai-search-wrapper">
             <svg class="ai-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" class="ai-search" placeholder="Filter..." id="ai-search-input">
           </div>
+
+          <div class="ai-mode-switch">
+              <button class="ai-mode-btn active" id="ai-mode-icon" title="Icon mode">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+              </button>
+              <button class="ai-mode-btn" id="ai-mode-bar" title="Floating bar mode">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="8" rx="2"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+              </button>
+            </div>
         </div>
       </div>
       <div class="ai-nav-content" id="ai-nav-content"></div>
     `;
 
     root.appendChild(toggleBtn);
+    root.appendChild(floatingBar);
     root.appendChild(panel);
     document.body.appendChild(root);
 
@@ -374,39 +395,34 @@
     panel.querySelectorAll(".ai-view-switch button").forEach((btn) => {
       btn.addEventListener("click", () => {
         const level = parseInt(btn.dataset.level);
-  setViewLevel(level);
+        setViewLevel(level);
       });
     });
 
-    document
-      .getElementById("ai-export-btn")
-      .addEventListener("click", exportChat);
+    document.getElementById("ai-export-btn").addEventListener("click", exportChat);
+    document.getElementById("ai-mode-icon").addEventListener("click", () => switchMode("icon"));
+    document.getElementById("ai-mode-bar").addEventListener("click", () => switchMode("floating-bar"));
 
-    // Keyboard Shortcuts
     setupKeyboardNavigation();
   }
 
   // Keyboard Setup
   function setupKeyboardNavigation() {
     document.addEventListener("keydown", (e) => {
-      // Toggle panel: Cmd/Ctrl + . or ;
       if ((e.metaKey || e.ctrlKey) && (e.key === "." || e.key === ";")) {
         e.preventDefault();
         toggleNav();
         return;
       }
 
-      // Only handle other shortcuts if panel is open
       if (!state.isOpen) return;
 
-      // Escape to close
       if (e.key === "Escape") {
         e.preventDefault();
         toggleNav(false);
         return;
       }
 
-      // Don't interfere with typing in inputs
       const activeEl = document.activeElement;
       const typingContext =
         activeEl &&
@@ -415,7 +431,6 @@
           activeEl.isContentEditable);
       if (typingContext) return;
 
-      // Navigation shortcuts
       if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
         moveFocus(1);
@@ -427,10 +442,10 @@
         activateFocusedItem();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setViewLevel(1); // Set to "Only Prompts"
+        setViewLevel(1);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        setViewLevel(2); // Set to "View All"
+        setViewLevel(2);
       }
     });
   }
@@ -442,7 +457,6 @@
     root.classList.toggle("open", newState);
 
     if (newState) {
-      // Set initial focus when opening
       const activeIndex = state.focusableIds.indexOf(state.activeNavId);
       if (activeIndex >= 0) {
         state.focusedIndex = activeIndex;
@@ -458,7 +472,7 @@
   }
 
   function setViewLevel(level) {
-    if (state.viewLevel === level) return; // Don't re-render if no change
+    if (state.viewLevel === level) return;
     const root = document.getElementById("ai-nav-root");
     if (!root) return;
 
@@ -518,8 +532,7 @@
     if (host.includes("claude")) root.classList.add("theme-claude");
     else if (host.includes("chatgpt")) root.classList.add("theme-openai");
     else if (host.includes("gemini")) root.classList.add("theme-gemini");
-    else root.classList.add("theme-dark"); // default/deepseek
-    // will add custom theme support
+    else root.classList.add("theme-dark");
   }
 
   // Logic for Refresh & Render
@@ -528,11 +541,9 @@
     const listContainer = document.getElementById("ai-nav-content");
     if (!listContainer) return;
 
-    // Get Turns and update scroll target from actual elements
     let turns = state.currentProvider.getTurns(state.scrollContainer);
     state.currentTurns = turns; // Save for export
 
-    // Update scroll target detection from actual turn elements (critical for Gemini/Claude)
     updateScrollTargetFromTurns(turns);
 
     // Sort turns by document position
@@ -541,8 +552,8 @@
       const position = a.element.compareDocumentPosition(b.element);
       return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
+    state.sortedTurns = turns; // Save sorted turns for floating bar
 
-    // Clear previous mappings
     state.navTargets.clear();
     state.navItems.clear();
     const focusOrder = [];
@@ -565,7 +576,6 @@
       if (!promptMatch && matchingHeadings.length === 0) return;
       hasVisibleItems = true;
 
-      // Create unique ID for this item
       const targetId = `nav-target-${index}`;
 
       const li = document.createElement("li");
@@ -581,7 +591,6 @@
          <span class="ai-nav-text">${cleanText(turn.text)}</span>
        `;
 
-      // Store mappings
       state.navTargets.set(targetId, turn.element);
       state.navItems.set(targetId, li);
       focusOrder.push(targetId);
@@ -591,7 +600,6 @@
         scrollToElement(turn.element, targetId);
       });
 
-      // Right-click to copy
       li.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         const textSpan = li.querySelector(".ai-nav-text");
@@ -607,7 +615,6 @@
             }, 1200);
           })
           .catch(() => {
-            // Fallback if clipboard API fails
             textSpan.textContent = "Copy failed";
             setTimeout(() => {
               textSpan.textContent = originalText;
@@ -617,10 +624,7 @@
 
       list.appendChild(li);
 
-      // Render Headings (Sub-items)
-      const headingsToShow = state.searchTerm
-        ? matchingHeadings
-        : turn.headings;
+      const headingsToShow = state.searchTerm ? matchingHeadings : turn.headings;
       if (!isUser && headingsToShow.length > 0) {
         const subUl = document.createElement("ul");
         subUl.className = "ai-nav-sublist";
@@ -652,7 +656,6 @@
       <div class="ai-nav-empty-state">Try Opening an existing conversation. Or Start a new conversation</div>`;
     }
 
-    // Update focusable IDs
     state.focusableIds = focusOrder;
     if (!focusOrder.length) {
       state.focusedIndex = -1;
@@ -661,7 +664,12 @@
     }
     updateFocusVisuals();
 
-    // Update scroll progress and active item if not searching
+    // Re-apply active highlight to the rebuilt DOM element — setActiveItem's
+    // early-return guard skips this when the ID hasn't changed.
+    if (state.activeNavId && state.navItems.has(state.activeNavId)) {
+      state.navItems.get(state.activeNavId).classList.add("ai-nav-active");
+    }
+
     if (!state.searchTerm) {
       setTimeout(updateScrollProgress, 100);
     }
@@ -671,7 +679,6 @@
   function scrollToElement(element, targetId) {
     if (!element) return;
 
-    // Suppress auto-scroll when manually navigating
     state.suppressNavAutoScroll = true;
     if (state.navAutoScrollTimeout) clearTimeout(state.navAutoScrollTimeout);
     state.navAutoScrollTimeout = setTimeout(() => {
@@ -687,8 +694,7 @@
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     } else if (isDocumentScroller(scrollSource)) {
       const globalTop = window.scrollY || window.pageYOffset || 0;
-      const targetTop =
-        element.getBoundingClientRect().top + globalTop - offset;
+      const targetTop = element.getBoundingClientRect().top + globalTop - offset;
       window.scrollTo({ top: targetTop, behavior: "smooth" });
     } else {
       const containerRect = scrollSource.getBoundingClientRect();
@@ -702,7 +708,6 @@
       }
     }
 
-    // Update focus index
     const idx = state.focusableIds.indexOf(targetId);
     if (idx !== -1) {
       state.focusedIndex = idx;
@@ -719,7 +724,10 @@
     const newItem = state.navItems.get(id);
     if (newItem) {
       newItem.classList.add("ai-nav-active");
-      newItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      // Only scroll the panel when it's visible to avoid fighting page scroll
+      if (state.isOpen) {
+        newItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
     }
     state.activeNavId = id;
   }
@@ -730,7 +738,6 @@
     const scrollSource = getScrollSourceNode();
     if (!scrollSource) return;
 
-    // Calculate scroll percentage
     let scrolled = 0;
     let max = 0;
 
@@ -751,18 +758,24 @@
     if (max < 0) max = 0;
     let pct = max > 0 ? Math.round((scrolled / max) * 100) : 0;
 
-    // Update progress bar
     const progressBar = document.getElementById("ai-progress-bar");
     if (progressBar) {
       progressBar.style.width = `${pct}%`;
     }
 
-    // Find closest item to viewport
+    const spinner = document.getElementById("ai-floating-spinner");
+    if (spinner) {
+      spinner.setAttribute("stroke-dasharray", `${pct}, 100`);
+    }
+
+    // Floating bar always updates on scroll, independent of panel suppression
+    if (state.uiMode === "floating-bar") updateFloatingBarText();
+
     if (state.suppressNavAutoScroll) return;
 
     const headerOffset = getScrollOffset();
-    const viewLine =
-      state.scrollContainer.getBoundingClientRect().top + headerOffset;
+    const containerTop = Math.max(0, state.scrollContainer.getBoundingClientRect().top);
+    const viewLine = containerTop + headerOffset;
     let closestId = null;
     let minDist = Infinity;
 
@@ -841,46 +854,35 @@
     if (!style) return false;
     const overflowY = style.overflowY || style.overflow;
     if (!overflowY || overflowY === "visible") return false;
-    const contentLarger = el.scrollHeight - el.clientHeight > 4;
-    return contentLarger && /(auto|scroll|overlay)/.test(overflowY);
+    // Don't rely on content.scrollHeight immediately, as virtualized 
+    // frameworks like React (in ChatGPT) might not overflow at mount time.
+    return /(auto|scroll|overlay)/.test(overflowY);
   }
 
   function setScrollEventTarget(target) {
     const metricsTarget = target || null;
-    const listenerTarget =
-      metricsTarget === document.body ||
-      metricsTarget === document.documentElement
-        ? window
-        : metricsTarget;
 
-    if (
-      state.scrollEventTarget === metricsTarget &&
-      state.scrollListenerTarget === listenerTarget
-    )
-      return;
-
-    if (state.scrollListenerTarget) {
-      state.scrollListenerTarget.removeEventListener("scroll", onScroll);
-    }
+    if (state.scrollEventTarget === metricsTarget) return;
 
     state.scrollEventTarget = metricsTarget;
-    state.scrollListenerTarget = listenerTarget || null;
-
-    if (
-      state.scrollListenerTarget &&
-      state.scrollListenerTarget.addEventListener
-    ) {
-      state.scrollListenerTarget.addEventListener("scroll", onScroll, {
-        passive: true,
-      });
-    }
-
     updateScrollProgress();
   }
 
   function onScroll() {
     if (state.scrollAnimationFrame) return;
     state.scrollAnimationFrame = requestAnimationFrame(() => {
+      // Detect scroll direction before processing
+      const scrollSource = getScrollSourceNode();
+      let currentScrollTop = 0;
+      if (scrollSource && !isDocumentScroller(scrollSource)) {
+        currentScrollTop = scrollSource.scrollTop;
+      } else {
+        const docEl = document.scrollingElement || document.documentElement || document.body;
+        currentScrollTop = docEl.scrollTop || 0;
+      }
+      state.scrollDirection = currentScrollTop >= state.lastScrollTop ? "down" : "up";
+      state.lastScrollTop = currentScrollTop;
+
       updateScrollProgress();
       state.scrollAnimationFrame = null;
     });
@@ -891,7 +893,6 @@
     if (!state.currentTurns) return;
 
     let mdContent = `# Chat Export - ${new Date().toLocaleDateString()}\n\n`;
-
     state.currentTurns.forEach((turn) => {
       const role = turn.role.toUpperCase();
       mdContent += `### ${role}\n\n${turn.text}\n\n---\n\n`;
@@ -906,9 +907,113 @@
     URL.revokeObjectURL(url);
   }
 
-  // Utils (CleanText, debounce logic)
+  // Feature: Floating Bar
+  function switchMode(mode) {
+    state.uiMode = mode;
+    const root = document.getElementById("ai-nav-root");
+    if (!root) return;
+
+    const floatingBar = root.querySelector(".ai-floating-bar");
+    const iconBtn = root.querySelector("#ai-mode-icon");
+    const barBtn = root.querySelector("#ai-mode-bar");
+
+    if (mode === "floating-bar") {
+      if (state.isOpen) toggleNav(false);
+      floatingBar.style.display = "flex";
+      iconBtn.classList.remove("active");
+      barBtn.classList.add("active");
+      updateScrollProgress();
+      updateFloatingBarText();
+    } else {
+      floatingBar.style.display = "none";
+      iconBtn.classList.add("active");
+      barBtn.classList.remove("active");
+    }
+  }
+
+  function toggleFloatingBar() {
+    const root = document.getElementById("ai-nav-root");
+    if (!root) return;
+    const floatingBar = root.querySelector(".ai-floating-bar");
+    if (!floatingBar) return;
+    const isVisible = floatingBar.style.display === "flex";
+    floatingBar.style.display = isVisible ? "none" : "flex";
+    if (!isVisible) updateFloatingBarText();
+  }
+
+  // Re-fetches turns fresh from DOM on every call so lazy-loaded elements are
+  // always included. Finds the last user turn whose top has passed the viewLine.
+  function updateFloatingBarText() {
+    if (!state.scrollContainer || !state.currentProvider) return;
+
+    const turns = state.currentProvider.getTurns(state.scrollContainer);
+    if (!turns.length) return;
+
+    const containerTop = Math.max(0, state.scrollContainer.getBoundingClientRect().top);
+    const viewLine = containerTop + getScrollOffset();
+
+    let currentUserTurn = null;
+    for (const turn of turns) {
+      if (!turn.element || !turn.element.isConnected || turn.role !== "user") continue;
+      const rect = turn.element.getBoundingClientRect();
+      if (rect.top <= viewLine) {
+        currentUserTurn = turn; // keep updating — last one wins
+      }
+    }
+
+    // Fallback: nothing past viewLine yet — show first user turn
+    if (!currentUserTurn) {
+      currentUserTurn = turns.find(
+        (t) => t.role === "user" && t.element && t.element.isConnected
+      );
+    }
+
+    if (!currentUserTurn) return;
+
+    const newText = cleanText(currentUserTurn.text);
+    if (newText === state.floatingBarText) return;
+    animateFloatingBarText(newText, state.scrollDirection);
+  }
+
+  function animateFloatingBarText(newText, direction = "down") {
+    const textEl = document.getElementById("ai-floating-bar-text");
+    if (!textEl) return;
+
+    // First render — set directly with no animation
+    if (!state.floatingBarText) {
+      textEl.textContent = newText;
+      state.floatingBarText = newText;
+      return;
+    }
+
+    // Scrolling down: current exits up, new enters from below
+    // Scrolling up:   current exits down, new enters from above
+    const exitY   = direction === "down" ? "-100%" : "100%";
+    const enterY  = direction === "down" ? "100%"  : "-100%";
+
+    textEl.style.transition = "transform 0.25s ease-in-out, opacity 0.25s ease-in-out";
+    textEl.style.transform = `translateY(${exitY})`;
+    textEl.style.opacity = "0";
+
+    setTimeout(() => {
+      textEl.textContent = newText;
+      state.floatingBarText = newText;
+      // Snap to entry position without transition, then animate in
+      textEl.style.transition = "none";
+      textEl.style.transform = `translateY(${enterY})`;
+      textEl.style.opacity = "0";
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          textEl.style.transition = "transform 0.25s ease-in-out, opacity 0.25s ease-in-out";
+          textEl.style.transform = "translateY(0)";
+          textEl.style.opacity = "1";
+        });
+      });
+    }, 250);
+  }
+
+  // Utils
   function cleanText(text) {
-    // remove newlines, take first sentence or 60 chars
     let clean = text.replace(/\s+/g, " ").trim();
     if (clean.length > 60) clean = clean.substring(0, 58) + "...";
     return clean;
@@ -922,39 +1027,33 @@
     };
   }
 
-  // Draggable Logic
-  function initDraggable(el) {
-    el.addEventListener("mousedown", dragStart);
-    document.addEventListener("mouseup", dragEnd);
-    document.addEventListener("mousemove", drag);
+  // Draggable Logic — shared document listeners, per-element mousedown
+  document.addEventListener("mouseup", () => {
+    state.drag.initialX = state.drag.currentX;
+    state.drag.initialY = state.drag.currentY;
+    state.drag.active = false;
+    state.drag.target = null;
+  });
 
-    function dragStart(e) {
-      if (e.target.closest(".ai-nav-panel")) return; // Don't drag if clicking panel
+  document.addEventListener("mousemove", (e) => {
+    if (!state.drag.active || !state.drag.target) return;
+    e.preventDefault();
+    state.drag.wasDragging = true;
+    state.drag.currentX = e.clientX - state.drag.initialX;
+    state.drag.currentY = e.clientY - state.drag.initialY;
+    state.drag.xOffset = state.drag.currentX;
+    state.drag.yOffset = state.drag.currentY;
+    state.drag.target.style.transform = `translate3d(${state.drag.currentX}px, ${state.drag.currentY}px, 0)`;
+  });
+
+  function initDraggable(el) {
+    el.addEventListener("mousedown", (e) => {
+      if (e.target.closest(".ai-nav-panel")) return;
+      state.drag.target = el;
       state.drag.initialX = e.clientX - state.drag.xOffset;
       state.drag.initialY = e.clientY - state.drag.yOffset;
       state.drag.active = true;
       state.drag.wasDragging = false;
-    }
-
-    function dragEnd(e) {
-      state.drag.initialX = state.drag.currentX;
-      state.drag.initialY = state.drag.currentY;
-      state.drag.active = false;
-    }
-
-    function drag(e) {
-      if (!state.drag.active) return;
-      e.preventDefault();
-      state.drag.wasDragging = true;
-      state.drag.currentX = e.clientX - state.drag.initialX;
-      state.drag.currentY = e.clientY - state.drag.initialY;
-      state.drag.xOffset = state.drag.currentX;
-      state.drag.yOffset = state.drag.currentY;
-      setTranslate(state.drag.currentX, state.drag.currentY, el);
-    }
-
-    function setTranslate(xPos, yPos, el) {
-      el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-    }
+    });
   }
 })();
