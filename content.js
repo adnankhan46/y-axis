@@ -455,6 +455,7 @@
     const newState = forceState !== undefined ? forceState : !state.isOpen;
     state.isOpen = newState;
     root.classList.toggle("open", newState);
+    window.metrics.track('sidebar_toggled', { state: newState });
 
     if (newState) {
       const activeIndex = state.focusableIds.indexOf(state.activeNavId);
@@ -482,6 +483,7 @@
       b.classList.toggle("active", btnLevel === level);
     });
     
+    window.metrics.track('view_level_changed', { level });
     state.viewLevel = level;
     refreshNavigation();
   }
