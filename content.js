@@ -590,8 +590,9 @@
                 : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 2a10 10 0 0 1 10 10h-10V2z"></path><path d="M12 12l9.5 5.5"></path><path d="M12 12l-9.5 5.5"></path></svg>'
             }
          </span>
-         <span class="ai-nav-text">${cleanText(turn.text)}</span>
+         <span class="ai-nav-text"></span>
        `;
+      li.querySelector('.ai-nav-text').textContent = cleanText(turn.text);
 
       state.navTargets.set(targetId, turn.element);
       state.navItems.set(targetId, li);
@@ -1019,6 +1020,15 @@
     let clean = text.replace(/\s+/g, " ").trim();
     if (clean.length > 60) clean = clean.substring(0, 58) + "...";
     return clean;
+  }
+
+  function escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function debounce(fn, ms) {

@@ -205,7 +205,7 @@
 
     overlay.innerHTML = `
       <div class="yaxis-onboarding-modal">
-        <div class="yaxis-onboarding-header" style="background-image: url('${headerBgUrl}');">
+        <div class="yaxis-onboarding-header">
          <h2 class="yaxis-onboarding-title">Welcome to Y-Axis</h2>
           <p class="yaxis-onboarding-subtitle">
             Navigate through your long AI chats.<br />
@@ -259,6 +259,12 @@
 
     document.body.appendChild(overlay);
 
+    // Set background image on header element
+    const headerElement = overlay.querySelector('.yaxis-onboarding-header');
+    if (headerElement) {
+      headerElement.style.backgroundImage = `url('${headerBgUrl}')`;
+    }
+
     // Get elements
     const emailInput = overlay.querySelector('#yaxis-email-input');
     const consentCheckbox = overlay.querySelector('#yaxis-consent-checkbox');
@@ -311,7 +317,11 @@
       const extracted = extractEmailFromPage();
       if (extracted) {
         emailInput.value = extracted;
-        extractedResult.innerHTML = `<div class="yaxis-extracted-email">Found: ${extracted}</div>`;
+        const emailDiv = document.createElement('div');
+        emailDiv.className = 'yaxis-extracted-email';
+        emailDiv.textContent = `Found: ${extracted}`;
+        extractedResult.innerHTML = '';
+        extractedResult.appendChild(emailDiv);
         updateSubmitButton(); // Enable submit button after extraction
         hideError();
       } else {

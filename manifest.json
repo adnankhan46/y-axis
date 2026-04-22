@@ -1,10 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Y-Axis : Natigate through long Chats",
+  "name": "Y-Axis : Navigate through long LLM Chats",
   "version": "2.0",
   "description": "Sidebar navigation and export for Claude, ChatGPT, Gemini, and DeepSeek.",
   "permissions": [
-    "activeTab",
     "clipboardWrite",
     "storage"
   ],
@@ -36,7 +35,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Y-Axis : Natigate through long Chats",
+    "default_title": "Y-Axis : Navigate through long Chats",
     "default_popup": "popup.html"
   },
   "web_accessible_resources": [
