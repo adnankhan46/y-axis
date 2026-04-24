@@ -10,7 +10,7 @@ Chat navigation that saves your thumb and your time.
   <a href="#" target="_blank"><img src="" alt="peerlist-img" style="width: 250px; height: 54px;" width="250" height="54" /></a>
 </p>
 <p align="center">
-  <a href="#">
+  <a href="https://chromewebstore.google.com/detail/y-axis-navigate-through-l/mmnhdknijdhpihgeflhnkaccjpcjjajo?authuser=0&hl=en-GB">
     <img src="https://img.shields.io/badge/Chrome_Web_Store-Install_Now-brightgreen?logo=google-chrome&logoColor=white" alt="Chrome Web Store">
   </a>
   
@@ -32,7 +32,7 @@ Saves a lot of time finding that one perfect prompt.
 
 ## Installation
 #### 1. Web Stores (Recommended)
-* **Chrome / Brave / Edge:** [Click Here](yaxis.vercel.app)
+* **Chrome / Brave / Edge:** [Click Here]([yaxis.vercel.app](https://chromewebstore.google.com/detail/y-axis-navigate-through-l/mmnhdknijdhpihgeflhnkaccjpcjjajo?authuser=0&hl=en-GB))
 * **Firefox:** *(Coming Soon)*
 
 ## Shortcuts
