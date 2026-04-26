@@ -32,7 +32,7 @@ Saves a lot of time finding that one perfect prompt.
 
 ## Installation
 #### 1. Web Stores (Recommended)
-* **Chrome / Brave / Edge:** [Click Here]([yaxis.vercel.app](https://chromewebstore.google.com/detail/y-axis-navigate-through-l/mmnhdknijdhpihgeflhnkaccjpcjjajo?authuser=0&hl=en-GB))
+* **Chrome / Brave / Edge:** [Click Here([yaxis.vercel.app](https://chromewebstore.google.com/detail/y-axis-navigate-through-l/mmnhdknijdhpihgeflhnkaccjpcjjajo?authuser=0&hl=en-GB))
 * **Firefox:** *(Coming Soon)*
 
 ## Shortcuts
