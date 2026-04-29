@@ -1,6 +1,6 @@
 
 # Y-axis
-Navigate through your l**long** AI chats.
+Navigate through your **long** AI chats.
 Chat navigation that saves your thumb and your time.
 
 <img width="1280" height="720" alt="y-axis-thumbnail" src="https://github.com/user-attachments/assets/66fd9186-a73b-48c0-badf-807cfa5159db" />
