@@ -43,6 +43,9 @@ Saves a lot of time finding that one perfect prompt.
 ## Credits
 > Y-axis dont own any of the Icons and Images used, credit goes to the providers.
 
+**Motion Design Intro Video by:**
+[Kanishk Pandey](https://www.linkedin.com/in/kanishk-pandey-63117129a?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app)
+
 **Icon Provider:**
 ```
 https://www.behance.net/gallery/237876757/Gatto-Gelato?tracking_source=search_projects|cat+logo&l=10
